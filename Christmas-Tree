@@ -1,0 +1,327 @@
+package christmastreegui;
+
+import javax.swing.*;
+import javax.swing.border.*;
+import javax.accessibility.*;
+ 
+import java.awt.*;
+import java.awt.event.*;
+import java.io.File;
+import java.io.IOException;
+import java.util.Random;
+import javax.imageio.ImageIO;
+ 
+/* 
+ * Christmas Tree
+ */
+public class ChristmasTree extends JPanel
+                             implements ActionListener,
+                                        MouseListener,
+                                        MouseMotionListener {
+    private String[] layerStrings = { "--Choose Option--", "Add Star", 
+                                      "Add Ornaments"};
+    
+    private JButton colorTree; 
+    private JButton reset; 
+    boolean starPlaced = false;
+    private JLabel ornament = new JLabel(); 
+    private JFormattedTextField text = new JFormattedTextField();
+    private static int position = 0; 
+    private Random rand = new Random();
+    private ImageIcon[] ornaments = new ImageIcon[7];
+    private JLayeredPane layeredPane;
+    private JLabel starOrnament;
+    private JComboBox layerList;
+    private int treeHeight; 
+    private int buttonWidth; 
+ 
+    //Action commands
+    private static String RESET_COMMAND = "reset"; 
+    private static String TREE_COMMAND = "action";
+    private static String COLOR_TREE = "colorTree";
+ 
+    //Adjustments to put the ornaments in the center of the cursor
+    private static final int xAdjust = 40;
+    private static final int yAdjust = 57;
+ 
+    public ChristmasTree()  throws IOException  {
+        setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
+        
+        for (int i = 0; i < 7; i++) {
+            ornaments[i] = createImageIcon("myimages/ornament" + (i+1) + ".jpg"); 
+        }
+ 
+        //Create and load the star
+        ImageIcon star = createImageIcon("myimages/star.png"); 
+        Image image = star.getImage(); 
+        image = image.getScaledInstance(90, 90, Image.SCALE_SMOOTH); 
+        star = new ImageIcon(image); 
+        
+        starOrnament = new JLabel("STAR", (Icon) star, JLabel.CENTER);  
+        starOrnament.setBounds(0, 0, star.getIconWidth(), star.getIconHeight());
+        starOrnament.setForeground(Color.red);
+        starOrnament.setHorizontalTextPosition(SwingConstants.CENTER); 
+        starOrnament.setVisible(false);
+        
+        layeredPane = new JLayeredPane();
+        layeredPane.setPreferredSize(new Dimension(600, 500));
+        layeredPane.setBorder(BorderFactory.createTitledBorder(
+                                    "Christmas Tree"));
+        layeredPane.addMouseMotionListener(this);
+        layeredPane.addMouseListener(this);
+        layeredPane.setVisible(true);
+ 
+        //This is the origin of the first label added.
+        Point origin = new Point(30, 310);
+        Point location = new Point(265, 330); 
+        //This is the offset for computing the origin for the next label.
+        int offset = 35;
+
+    treeHeight = 9; 
+    buttonWidth = 500; 
+        for (int i = 0; i < treeHeight+7; i++) {
+            JLabel label = createColoredButton(buttonWidth, new Color(0, 85, 0), origin); 
+            layeredPane.add(label, JLayeredPane.DEFAULT_LAYER, 0); 
+            origin.y -= 20; 
+            origin.x += 18.38; 
+            buttonWidth -= 35; 
+            JLabel button = addStump(location); 
+            if (i > treeHeight+2) {
+                layeredPane.add(button, JLayeredPane.DEFAULT_LAYER, 0); 
+                location.y += 20; 
+            }
+        }
+        
+        
+        layeredPane.add(starOrnament, JLayeredPane.DRAG_LAYER, 0);
+        //Add control pane and layered pane to this JPanel.
+        add(Box.createRigidArea(new Dimension(0, 10)));
+        add(createControlPanel());
+        add(Box.createRigidArea(new Dimension(0, 10)));
+        add(layeredPane);
+    }
+ 
+    
+    private JLabel createOrnament() { 
+        ImageIcon myOrnament = ornaments[rand.nextInt(7)];
+        Image image = myOrnament.getImage();
+        image = image.getScaledInstance(20, 20, Image.SCALE_SMOOTH); 
+        myOrnament = new ImageIcon(image); 
+        ornament = new JLabel((Icon) myOrnament, JLabel.CENTER);
+        ornament.setBounds(0, position, myOrnament.getIconWidth(), myOrnament.getIconHeight());
+        position += myOrnament.getIconHeight(); 
+        return ornament; 
+    }
+    
+    private Color randomColor() {
+       Random rand = new Random(); 
+       float r = rand.nextFloat(); 
+       float g = rand.nextFloat(); 
+       float b = rand.nextFloat(); 
+       Color randomColor = new Color(r, g, b);
+       return randomColor; 
+    }
+    
+    /** Returns an ImageIcon, or null if the path was invalid. */
+    protected static ImageIcon createImageIcon(String path) {
+        JLabel imageLabel = new JLabel(); 
+        
+        
+        java.net.URL imgURL = ChristmasTree.class.getResource(path);
+        if (imgURL != null) {
+            return new ImageIcon(imgURL);
+        } 
+        else {
+            System.err.println("Couldn't find file: " + path);
+            return null;
+        }
+    }
+ 
+    private JLabel addStump(Point loc) {
+        JLabel button = new JLabel(); 
+        button.setOpaque(true);
+        button.setBackground(new Color(102, 51, 0));
+        button.setForeground(Color.red);
+        button.setBorder(BorderFactory.createLineBorder(Color.black)); 
+        button.setBounds(loc.x, loc.y, 30, 20);
+        return button; 
+    }
+    
+    //Create and set up a colored label.
+    private JLabel createColoredButton(int buttonWidth,
+                                      Color color,
+                                      Point origin) {
+        JLabel label = new JLabel();
+        label.setVerticalAlignment(JLabel.CENTER);
+        label.setHorizontalAlignment(JLabel.CENTER);
+        label.setOpaque(true);
+        label.setBackground(color);
+        label.setForeground(Color.black);
+        label.setBorder(BorderFactory.createLineBorder(Color.black));
+        label.setBounds(origin.x, origin.y, buttonWidth, 20);
+        return label;
+    }
+ 
+    //Create the control pane for the top of the frame.
+    private JPanel createControlPanel() {
+        layerList = new JComboBox(layerStrings);
+        layerList.setSelectedIndex(0); 
+        layerList.setActionCommand(TREE_COMMAND);
+        layerList.addActionListener(this);
+ 
+        JPanel controls = new JPanel();
+        controls.add(layerList);
+        controls.setBorder(BorderFactory.createTitledBorder(
+                                 "Controls"));
+        
+        text.setVisible(false);
+        text.setText("The star will follow the cursor. Click to place!");
+        
+        controls.add(text); 
+        
+        
+        reset = new JButton("RESET");
+        reset.setForeground(Color.red);
+        reset.setHorizontalTextPosition(SwingConstants.RIGHT);
+        reset.setActionCommand(RESET_COMMAND);
+        reset.addActionListener(this);
+        controls.add(reset); 
+        
+        colorTree = new JButton("Color Tree"); 
+        colorTree.setForeground(new Color(0, 100, 0));
+        colorTree.setActionCommand(COLOR_TREE);
+        colorTree.addActionListener(this);
+        colorTree.setBounds(500, 30, 50, 50);
+        controls.add(colorTree); 
+        
+        return controls;
+    }
+ 
+    //Make the star follow the cursor
+    public void mouseMoved(MouseEvent e) {
+        starOrnament.setLocation(e.getX()-xAdjust, e.getY()-yAdjust);
+    }
+    
+    public void mouseClicked(MouseEvent e) {
+        if (!starPlaced && layerList.getSelectedIndex() == 1) {
+            starOrnament.setLocation(e.getX()-xAdjust, e.getY()-yAdjust);
+            starPlaced = true; 
+            layeredPane.removeMouseMotionListener(this);
+        }
+        else if (layerList.getSelectedIndex() == 2 ) {
+            JLabel ornament = createOrnament(); 
+            layeredPane.add(ornament, JLayeredPane.PALETTE_LAYER, 0);
+            ornament.setLocation(e.getX(), e.getY());
+        }
+    }
+    
+    @Override
+    public void mouseEntered(MouseEvent e) {} //do nothing
+    @Override
+    public void mouseDragged(MouseEvent e) {} //do nothing
+    @Override
+    public void mousePressed(MouseEvent e) {} //do nothing
+    @Override
+    public void mouseReleased(MouseEvent e) {} //do nothing
+    @Override
+    public void mouseExited(MouseEvent e) {} //do nothing
+    
+ 
+    //Handle user interaction with the combo box.
+    public void actionPerformed(ActionEvent e) {
+        String cmd = e.getActionCommand();
+
+        if (TREE_COMMAND.equals(cmd)) {
+            if (layerList.getSelectedIndex() == 0) {
+                text.setVisible(true);
+                text.setText("Please choose an option");                
+                text.setForeground(Color.blue);
+                text.setBackground(Color.lightGray); 
+                /*
+                The heck...
+                */
+                if (!starPlaced) {
+                    starOrnament.setVisible(true);
+                    starOrnament.setVisible(false);
+                }
+                
+            }
+            if (layerList.getSelectedIndex() == 1) {
+                text.setVisible(true);
+                text.setText("The star will follow the cursor. Click to place!");
+                text.setBackground(Color.lightGray);
+                text.setForeground(new Color(0, 100, 0));
+                starOrnament.setVisible(true); 
+            }
+            if (layerList.getSelectedIndex() == 2) {
+                if (!starPlaced) {
+                    starOrnament.setVisible(false);
+                }
+                text.setVisible(true);
+                text.setText("Click to place ornaments!");
+                text.setBackground(Color.lightGray);
+                text.setForeground(Color.red);
+                /*
+                The heck...
+                */
+               if (!starPlaced) {
+                    starOrnament.setVisible(true);
+                    starOrnament.setVisible(false);
+                }
+               
+            }
+        }
+        
+        if (COLOR_TREE.equals(cmd)) {
+            int numInLayer = layeredPane.getComponentCountInLayer(JLayeredPane.DEFAULT_LAYER);
+            for (int i = numInLayer-1; i >= 0; i--) {
+                Component components[] = layeredPane.getComponentsInLayer(JLayeredPane.DEFAULT_LAYER); 
+                components[i].setForeground(randomColor());
+                components[i].setBackground(randomColor());
+            }
+        }
+        
+        if (RESET_COMMAND.equals(cmd)) {
+            if (starOrnament.isVisible()) {
+                starOrnament.setVisible(false);
+                starPlaced = false;
+                layeredPane.addMouseMotionListener(this);
+                starOrnament.setLocation(0, 0);
+            }
+            
+            int numInDLayer = layeredPane.getComponentCountInLayer(JLayeredPane.DEFAULT_LAYER);
+            for (int i = numInDLayer-1; i >= 0; i--) {
+                Component components[] = layeredPane.getComponentsInLayer(JLayeredPane.DEFAULT_LAYER); 
+                components[i].setForeground(new Color(0, 85, 0));
+                components[i].setBackground(new Color(0, 85, 0));
+            }
+            
+            
+            int numInLayer = layeredPane.getComponentCountInLayer(JLayeredPane.PALETTE_LAYER);
+            for (int i = numInLayer-1; i >= 0; i--) {
+                Component components[] = layeredPane.getComponentsInLayer(JLayeredPane.PALETTE_LAYER); 
+                layeredPane.remove(components[i]);
+            }
+            layeredPane.repaint();
+        }
+       
+    }
+ 
+    /**
+     * Create the GUI and show it.  
+     */
+    public static void createAndShowGUI() throws IOException {
+        //Create and set up the window.
+        JFrame frame = new JFrame("ChristmasTree");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+ 
+        //Create and set up the content pane.
+        JComponent newContentPane = new ChristmasTree();
+        newContentPane.setOpaque(true); //content panes must be opaque
+        frame.setContentPane(newContentPane);
+ 
+        //Display the window.
+        frame.pack();
+        frame.setVisible(true);
+    }
+}
