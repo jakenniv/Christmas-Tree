@@ -1,3 +1,14 @@
+/**
+ * Title: ChristmasTreeGUI
+ * 
+ * @author Jake Kenniv
+ * @version 1.1
+ * 
+ * Description: An interactive GUI for the Christmas season 
+ * Copyright: Copyright (c) 2017
+ * 
+ */
+
 package christmastreegui;
 
 import javax.swing.*;
@@ -11,108 +22,127 @@ import java.io.IOException;
 import java.util.Random;
 import javax.imageio.ImageIO;
  
-/* 
- * Christmas Tree
- */
+
 public class ChristmasTree extends JPanel
                              implements ActionListener,
                                         MouseListener,
                                         MouseMotionListener {
-    private String[] layerStrings = { "--Choose Option--", "Add Star", 
-                                      "Add Ornaments"};
     
+    private String[] menuOptions = { "--Choose Option--", "Add Star", 
+                                      "Add Ornaments"}; 
     private JButton colorTree; 
     private JButton reset; 
     boolean starPlaced = false;
-    private JLabel ornament = new JLabel(); 
-    private JFormattedTextField text = new JFormattedTextField();
-    private static int position = 0; 
-    private Random rand = new Random();
+    private JLabel ornament;  
+    private JLabel text; 
+    private Random rand;
     private ImageIcon[] ornaments = new ImageIcon[7];
     private JLayeredPane layeredPane;
     private JLabel starOrnament;
-    private JComboBox layerList;
-    private int treeHeight; 
-    private int buttonWidth; 
+    private JComboBox menu;
+    private int labelWidth; 
  
     //Action commands
     private static String RESET_COMMAND = "reset"; 
     private static String TREE_COMMAND = "action";
     private static String COLOR_TREE = "colorTree";
  
-    //Adjustments to put the ornaments in the center of the cursor
-    private static final int xAdjust = 40;
-    private static final int yAdjust = 57;
+    //Adjustments to put the star at the center of the cursor
+    private static final int xAdjust = 32;
+    private static final int yAdjust = 40;
+    
+    //Control variables for building the tree
+    private static final int treeHeight = 16;
+    private static final Point origin = new Point(30, 310);
+    private static final Point stumpLoc = new Point(265, 330); 
  
+    
     public ChristmasTree()  throws IOException  {
         setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
         
-        for (int i = 0; i < 7; i++) {
-            ornaments[i] = createImageIcon("myimages/ornament" + (i+1) + ".jpg"); 
-        }
- 
-        //Create and load the star
-        ImageIcon star = createImageIcon("myimages/star.png"); 
-        Image image = star.getImage(); 
-        image = image.getScaledInstance(90, 90, Image.SCALE_SMOOTH); 
-        star = new ImageIcon(image); 
-        
-        starOrnament = new JLabel("STAR", (Icon) star, JLabel.CENTER);  
-        starOrnament.setBounds(0, 0, star.getIconWidth(), star.getIconHeight());
-        starOrnament.setForeground(Color.red);
-        starOrnament.setHorizontalTextPosition(SwingConstants.CENTER); 
-        starOrnament.setVisible(false);
-        
+        //Define the layered pane
         layeredPane = new JLayeredPane();
-        layeredPane.setPreferredSize(new Dimension(600, 500));
+        layeredPane.setPreferredSize(new Dimension(650, 500));
         layeredPane.setBorder(BorderFactory.createTitledBorder(
                                     "Christmas Tree"));
         layeredPane.addMouseMotionListener(this);
         layeredPane.addMouseListener(this);
         layeredPane.setVisible(true);
- 
-        //This is the origin of the first label added.
-        Point origin = new Point(30, 310);
-        Point location = new Point(265, 330); 
-        //This is the offset for computing the origin for the next label.
-        int offset = 35;
-
-    treeHeight = 9; 
-    buttonWidth = 500; 
-        for (int i = 0; i < treeHeight+7; i++) {
-            JLabel label = createColoredButton(buttonWidth, new Color(0, 85, 0), origin); 
-            layeredPane.add(label, JLayeredPane.DEFAULT_LAYER, 0); 
-            origin.y -= 20; 
-            origin.x += 18.38; 
-            buttonWidth -= 35; 
-            JLabel button = addStump(location); 
-            if (i > treeHeight+2) {
-                layeredPane.add(button, JLayeredPane.DEFAULT_LAYER, 0); 
-                location.y += 20; 
-            }
-        }
         
+        //Create and load the star image
+        ImageIcon star = createImageIcon("myimages/star.png"); 
+        Image image = star.getImage(); 
+        image = image.getScaledInstance(70, 70, Image.SCALE_SMOOTH); 
+        star = new ImageIcon(image); 
         
+        //Define the star ornament
+        starOrnament = new JLabel((Icon) star);  
+        starOrnament.setBounds(0, 0, star.getIconWidth(), star.getIconHeight()); 
+        starOrnament.setVisible(false);
+        
+        //Build the tree
+        buildTree(); 
+        
+        //Add the star to the layered pane 
         layeredPane.add(starOrnament, JLayeredPane.DRAG_LAYER, 0);
-        //Add control pane and layered pane to this JPanel.
+        
+        //Add control pane and layered pane to the JPanel.
         add(Box.createRigidArea(new Dimension(0, 10)));
         add(createControlPanel());
         add(Box.createRigidArea(new Dimension(0, 10)));
         add(layeredPane);
     }
  
+    /**
+     * Builds the tree that the user interacts with
+     */
+    private void buildTree() {
+        labelWidth = 500; 
+        //Builds the tree out of green JLabels
+        for (int i = 0; i < treeHeight; i++) {
+            JLabel label = createTreeLabel(labelWidth, new Color(0, 85, 0), origin);  
+            layeredPane.add(label, JLayeredPane.DEFAULT_LAYER, 0); 
+            
+            //Adjustments to change the size and location of the JLables
+            origin.y -= 20; 
+            origin.x += 18.38; 
+            labelWidth -= 35; 
+            
+        }
+        
+        //Add the stump to the tree 
+        for (int i = 0; i < 4; i++) {
+            JLabel stump = stumpButton(stumpLoc); 
+            layeredPane.add(stump, JLayeredPane.DEFAULT_LAYER, 0); 
+            stumpLoc.y += 20; 
+        }
+    }
     
+    /**
+     * Chooses a random ornament from 7 options
+     * @return the chosen ornament 
+     */
     private JLabel createOrnament() { 
+        //Populate the ornanment array 
+        for (int i = 0; i < 7; i++) {
+            ornaments[i] = createImageIcon("myimages/ornament" + (i+1) + ".jpg"); 
+        }
+        //Create a scaled image of 1 of 7 random ornaments
+        rand = new Random();
         ImageIcon myOrnament = ornaments[rand.nextInt(7)];
         Image image = myOrnament.getImage();
         image = image.getScaledInstance(20, 20, Image.SCALE_SMOOTH); 
         myOrnament = new ImageIcon(image); 
-        ornament = new JLabel((Icon) myOrnament, JLabel.CENTER);
-        ornament.setBounds(0, position, myOrnament.getIconWidth(), myOrnament.getIconHeight());
-        position += myOrnament.getIconHeight(); 
+        //Add the image to the JLabel
+        ornament = new JLabel((Icon) myOrnament);
+        ornament.setBounds(0, 0, myOrnament.getIconWidth(), myOrnament.getIconHeight());
         return ornament; 
     }
     
+    /**
+     * Creates a random color 
+     * @return the random color 
+     */
     private Color randomColor() {
        Random rand = new Random(); 
        float r = rand.nextFloat(); 
@@ -122,11 +152,12 @@ public class ChristmasTree extends JPanel
        return randomColor; 
     }
     
-    /** Returns an ImageIcon, or null if the path was invalid. */
-    protected static ImageIcon createImageIcon(String path) {
-        JLabel imageLabel = new JLabel(); 
-        
-        
+    /**
+     * Verifies the file path of the image 
+     * @param path the path of the image
+     * @return the image if the path is valid, otherwise null 
+     */
+    protected static ImageIcon createImageIcon(String path) { 
         java.net.URL imgURL = ChristmasTree.class.getResource(path);
         if (imgURL != null) {
             return new ImageIcon(imgURL);
@@ -137,81 +168,99 @@ public class ChristmasTree extends JPanel
         }
     }
  
-    private JLabel addStump(Point loc) {
-        JLabel button = new JLabel(); 
-        button.setOpaque(true);
-        button.setBackground(new Color(102, 51, 0));
-        button.setForeground(Color.red);
-        button.setBorder(BorderFactory.createLineBorder(Color.black)); 
-        button.setBounds(loc.x, loc.y, 30, 20);
-        return button; 
+    /**
+     * Creates the labels for the stump
+     * @param loc the location for the stump
+     * @return the stump label 
+     */
+    private JLabel stumpButton(Point loc) {
+        JLabel stump = new JLabel(); 
+        stump.setOpaque(true);
+        stump.setBackground(new Color(102, 51, 0));
+        stump.setForeground(Color.black);
+        stump.setBounds(loc.x, loc.y, 30, 20);
+        return stump; 
     }
     
-    //Create and set up a colored label.
-    private JLabel createColoredButton(int buttonWidth,
-                                      Color color,
-                                      Point origin) {
+    /**
+     * Creates the tree labels that make the tree 
+     * @param labelWidth the width of each label
+     * @param color the color of the label
+     * @param origin the location of each label 
+     * @return the tree label
+     */
+    private JLabel createTreeLabel(int labelWidth, Color color, Point origin) {
         JLabel label = new JLabel();
-        label.setVerticalAlignment(JLabel.CENTER);
-        label.setHorizontalAlignment(JLabel.CENTER);
         label.setOpaque(true);
         label.setBackground(color);
         label.setForeground(Color.black);
-        label.setBorder(BorderFactory.createLineBorder(Color.black));
-        label.setBounds(origin.x, origin.y, buttonWidth, 20);
+        label.setBounds(origin.x, origin.y, labelWidth, 20);
         return label;
     }
  
-    //Create the control pane for the top of the frame.
+    /**
+     * Creates the control panel for the tree 
+     * @return the control panel 
+     */
     private JPanel createControlPanel() {
-        layerList = new JComboBox(layerStrings);
-        layerList.setSelectedIndex(0); 
-        layerList.setActionCommand(TREE_COMMAND);
-        layerList.addActionListener(this);
+        //Define the menu box
+        menu = new JComboBox(menuOptions);
+        menu.setSelectedIndex(0); 
+        menu.setActionCommand(TREE_COMMAND);
+        menu.addActionListener(this);
  
-        JPanel controls = new JPanel();
-        controls.add(layerList);
-        controls.setBorder(BorderFactory.createTitledBorder(
-                                 "Controls"));
-        
-        text.setVisible(false);
-        text.setText("The star will follow the cursor. Click to place!");
-        
-        controls.add(text); 
-        
-        
+        //Define the reset button
         reset = new JButton("RESET");
         reset.setForeground(Color.red);
-        reset.setHorizontalTextPosition(SwingConstants.RIGHT);
         reset.setActionCommand(RESET_COMMAND);
         reset.addActionListener(this);
-        controls.add(reset); 
         
+        //Define the color tree buton
         colorTree = new JButton("Color Tree"); 
         colorTree.setForeground(new Color(0, 100, 0));
         colorTree.setActionCommand(COLOR_TREE);
         colorTree.addActionListener(this);
-        colorTree.setBounds(500, 30, 50, 50);
-        controls.add(colorTree); 
         
+        //Define the text box
+        text = new JLabel(); 
+        text.setText("The star will follow the cursor. " + "Click to place!");
+        text.setVisible(false);
+        
+        //Add components to the control panel 
+        JPanel controls = new JPanel();
+        controls.setBorder(BorderFactory.createTitledBorder("Controls"));
+        controls.add(menu);
+        controls.add(text);
+        controls.add(reset); 
+        controls.add(colorTree); 
+         
         return controls;
     }
  
-    //Make the star follow the cursor
+    /**
+     * Makes the star follow the cursor
+     * @param e MouseEvent 
+     */
     public void mouseMoved(MouseEvent e) {
         starOrnament.setLocation(e.getX()-xAdjust, e.getY()-yAdjust);
     }
     
+    /**
+     * Handles mouse click events 
+     * @param e MouseEvent
+     */
     public void mouseClicked(MouseEvent e) {
-        if (!starPlaced && layerList.getSelectedIndex() == 1) {
+        //Place the star and remove the mouse motion listener so it stays in place
+        if (!starPlaced && menu.getSelectedIndex() == 1) {
             starOrnament.setLocation(e.getX()-xAdjust, e.getY()-yAdjust);
             starPlaced = true; 
             layeredPane.removeMouseMotionListener(this);
         }
-        else if (layerList.getSelectedIndex() == 2 ) {
+        //Place the ornaments 
+        else if (menu.getSelectedIndex() == 2 ) {
             JLabel ornament = createOrnament(); 
             layeredPane.add(ornament, JLayeredPane.PALETTE_LAYER, 0);
-            ornament.setLocation(e.getX(), e.getY());
+            ornament.setLocation(e.getX()-10, e.getY()-10);
         }
     }
     
@@ -227,84 +276,84 @@ public class ChristmasTree extends JPanel
     public void mouseExited(MouseEvent e) {} //do nothing
     
  
-    //Handle user interaction with the combo box.
+    /**
+     * Handle user interaction with the control panel
+     * @param e ActionEvent
+     */
     public void actionPerformed(ActionEvent e) {
         String cmd = e.getActionCommand();
 
+        //Handles all interaction with the combo box
         if (TREE_COMMAND.equals(cmd)) {
-            if (layerList.getSelectedIndex() == 0) {
+            if (menu.getSelectedIndex() == 0) {
                 text.setVisible(true);
                 text.setText("Please choose an option");                
                 text.setForeground(Color.blue);
-                text.setBackground(Color.lightGray); 
-                /*
-                The heck...
-                */
-                if (!starPlaced) {
-                    starOrnament.setVisible(true);
-                    starOrnament.setVisible(false);
-                }
-                
+                text.setBackground(Color.lightGray);                                
             }
-            if (layerList.getSelectedIndex() == 1) {
+            
+            if (menu.getSelectedIndex() == 1) {
                 text.setVisible(true);
                 text.setText("The star will follow the cursor. Click to place!");
                 text.setBackground(Color.lightGray);
                 text.setForeground(new Color(0, 100, 0));
                 starOrnament.setVisible(true); 
             }
-            if (layerList.getSelectedIndex() == 2) {
+            
+            if (menu.getSelectedIndex() == 2) {
                 if (!starPlaced) {
                     starOrnament.setVisible(false);
                 }
                 text.setVisible(true);
                 text.setText("Click to place ornaments!");
                 text.setBackground(Color.lightGray);
-                text.setForeground(Color.red);
-                /*
-                The heck...
-                */
-               if (!starPlaced) {
-                    starOrnament.setVisible(true);
-                    starOrnament.setVisible(false);
-                }
-               
+                text.setForeground(Color.red);                               
             }
         }
         
-        if (COLOR_TREE.equals(cmd)) {
-            int numInLayer = layeredPane.getComponentCountInLayer(JLayeredPane.DEFAULT_LAYER);
-            for (int i = numInLayer-1; i >= 0; i--) {
+        //Handles the color tree button
+        int numInDLayer = layeredPane.getComponentCountInLayer(JLayeredPane.DEFAULT_LAYER);
+        if (COLOR_TREE.equals(cmd)) { 
+            //Set each tree label to a random color 
+            for (int i = numInDLayer-1; i >= 0; i--) {
                 Component components[] = layeredPane.getComponentsInLayer(JLayeredPane.DEFAULT_LAYER); 
                 components[i].setForeground(randomColor());
                 components[i].setBackground(randomColor());
             }
         }
         
+        //Handles the reset button
         if (RESET_COMMAND.equals(cmd)) {
+            //Remove the star
             if (starOrnament.isVisible()) {
                 starOrnament.setVisible(false);
                 starPlaced = false;
                 layeredPane.addMouseMotionListener(this);
                 starOrnament.setLocation(0, 0);
+            }           
+
+            //Reset the color of the tree (including the stump)
+            Component DLcomponents[] = 
+                    layeredPane.getComponentsInLayer(JLayeredPane.DEFAULT_LAYER); 
+            for (int i = numInDLayer-1; i >= 4; i--) {
+                DLcomponents[i].setForeground(new Color(0, 85, 0));
+                DLcomponents[i].setBackground(new Color(0, 85, 0));
             }
-            
-            int numInDLayer = layeredPane.getComponentCountInLayer(JLayeredPane.DEFAULT_LAYER);
-            for (int i = numInDLayer-1; i >= 0; i--) {
-                Component components[] = layeredPane.getComponentsInLayer(JLayeredPane.DEFAULT_LAYER); 
-                components[i].setForeground(new Color(0, 85, 0));
-                components[i].setBackground(new Color(0, 85, 0));
+            for (int i = 4; i >= 0; i--) {
+                DLcomponents[i].setForeground(new Color(102, 51, 0));
+                DLcomponents[i].setBackground(new Color(102, 51, 0));
             }
-            
-            
-            int numInLayer = layeredPane.getComponentCountInLayer(JLayeredPane.PALETTE_LAYER);
-            for (int i = numInLayer-1; i >= 0; i--) {
-                Component components[] = layeredPane.getComponentsInLayer(JLayeredPane.PALETTE_LAYER); 
-                layeredPane.remove(components[i]);
+               
+            //Remove all the ornaments 
+            int numInPLayer = 
+                    layeredPane.getComponentCountInLayer(JLayeredPane.PALETTE_LAYER);
+            for (int i = numInPLayer-1; i >= 0; i--) {
+                Component PLcomponents[] = 
+                        layeredPane.getComponentsInLayer(JLayeredPane.PALETTE_LAYER); 
+                layeredPane.remove(PLcomponents[i]);
             }
             layeredPane.repaint();
         }
-       
     }
  
     /**
